@@ -5,37 +5,50 @@
 
 #define MAX_ALUNOS 100
 #define TAM_STRING 100
+#define TAM_MATRICULA 10
+#define TAM_BUF_NUM 32 // buffer temporário para números
 
 /*------ DEF STRUCT ------*/
 
-struct Aluno {
-    int matricula[8];
+struct Aluno
+{
+    char matricula[TAM_MATRICULA];
     char nome[TAM_STRING];
-    int idade[3];
+    int idade;
     char curso[TAM_STRING];
-    float media[4];
-    char situacao[20];
+    float media;
+    char situacao[TAM_MATRICULA];
 };
 
-/*FUNÇÃO PARA LIMPAR BUFFER NA ENTRADA*/
+/*------ UTIL: limpa \n de string lida com fgets ------*/
+static void strip_newline(char *s)
+{
+    if (!s)
+        return;
+    s[strcspn(s, "\n")] = '\0';
+}
 
-void limparBufferUp() {
+/*------ UTIL: limpar buffer do stdin após scanf ------*/
+void limparBufferUp(void)
+{
     int c;
-    while ((c=getchar()) != '\n' && c != EOF);
+    while ((c = getchar()) != '\n' && c != EOF)
+        ;
 }
 
 /*--- FUNÇÃO PRINCIPAL ---*/
 
-int main() {
+int main(void)
+{
     struct Aluno dados[MAX_ALUNOS];
     int totalAlunos = 0;
     int opcao;
 
-    do    {
-      
+    do
+    {
 
         printf("=========================================\n");
-        printf("    DADOS DOS ALUNOS       \n");
+        printf("             DADOS DOS ALUNOS            \n");
         printf("=========================================\n");
         printf("1 - Cadastrar novo aluno\n");
         printf("2 - Listar todos os alunos cadastrados\n");
@@ -43,90 +56,110 @@ int main() {
         printf("=========================================\n");
         printf("Escolha uma opcao: ");
 
-        scanf("%d", &opcao);
+        if (scanf("%d", &opcao) != 1)
+        {
+            printf("\nOpcao invalida! Tente novamente.\n");
+            limparBufferUp();
+            continue;
+        };
+
         limparBufferUp();
 
         switch (opcao) {
-        case 1: /* cadastro */
-        printf("--- Cadastro de um novo aluno ---");
+        case 1: 
+        { /* cadastro */
+            printf("--- Cadastro de um novo aluno ---");
 
-            if (totalAlunos < MAX_ALUNOS) {
-                printf("Digite a matricula do aluno: ");
-                fgets(dados[totalAlunos].matricula, 8, stdin);
-
-                printf("Digite o nome do aluno: ");
-                fgets(dados[totalAlunos].nome, TAM_STRING, stdin);
-
-                printf("Digite a idade do aluno: ");
-                fgets(dados[totalAlunos].idade, 3, stdin);
-
-                printf("Digite o curso do aluno: ");
-                fgets(dados[totalAlunos].curso, TAM_STRING, stdin);
-
-                printf("Digite a media do aluno: ");
-                fgets(dados[totalAlunos].media, 4, stdin);
-            
-                printf("Digite a situacao do aluno: ");
-                fgets(dados[totalAlunos].situacao, 20, stdin);
-
-                dados[totalAlunos].matricula[strcspn(dados[totalAlunos].matricula, "\n")] = '\0';
-                dados[totalAlunos].nome[strcspn(dados[totalAlunos].nome, "\n")] = '\0';
-                dados[totalAlunos].idade[strcspn(dados[totalAlunos].idade, "\n")] = '\0';
-                dados[totalAlunos].curso[strcspn(dados[totalAlunos].curso, "\n")] = '\0';
-                dados[totalAlunos].media[strcspn(dados[totalAlunos].media, "\n")] = '\0';
-                dados[totalAlunos].situacao[strcspn(dados[totalAlunos].situacao, "\n")] = '\0';
-
-                limparBufferUp();
-
-                totalAlunos++;
-
-                printf("\nAluno cadastrado com sucesso!\n");
-
-            } else {
-                printf("Quantidade maxima de alunos cadastrado! Nao e possivel cadastrar mais alunos.");
-
-            }
-            
-            printf("\n Pressione Enter para continuar...");
-            getchar(); /*Pausa para o user ler a mensagem antes de voltar*/
-            break;
-
-        case 2: /*Listagem de alunos*/
-            printf("--- Lista de alunos cadastrados ---\n\n");
-
-            if (totalAlunos == 0) {
-                printf("Nenhum aluno cadastrado ainda. \n");
-            } else {
-                for (int i = 0; i < totalAlunos; i++) {
-                    printf("===========================================\n");
-                    printf("Aluno %d\n", i + 1);
-                    printf("Matricula: %d\n", dados[i].matricula);
-                    printf("Matricula: %s\n", dados[i].nome);
-                    printf("Matricula: %d\n", dados[i].idade);
-                    printf("Matricula: %s\n", dados[i].curso);
-                    printf("Matricula: %d\n", dados[i].media);
-                    printf("Matricula: %s\n", dados[i].situacao);
-                }
-                printf("===============================================\n");
+            if (totalAlunos >= MAX_ALUNOS)
+            {
+                printf("Quantidade maxima atingida! Nao e possivel cadastrar mais alunos.\n");
+                printf("\nPressione enter para continuar....");
+                getchar();
+                break;
             }
 
-            printf("\nPressione enter para continuar....");
-            getchar();
-            break;
+            struct Aluno *a = &dados[totalAlunos]; /*ponteiro*/
+            char buf[TAM_BUF_NUM];
 
-        case 0: /*SAIR*/
-            printf("\nSaindo do sistema....\n");
-            break;
+            printf("Digite a matricula do aluno: ");
+            if (!fgets(a->matricula, TAM_MATRICULA, stdin))
+                a->matricula[0] = '\0';
+            strip_newline(a->matricula);
 
-        default: /*Opção invalida - caso seja digitado algo fora das opções dadas*/
-            printf("\nOpcao invalida! Tente novamente.\n");
+            printf("Digite o nome do aluno: ");
+            if (!fgets(a->nome, TAM_STRING, stdin))
+                a->nome[0] = '\0';
+            strip_newline(a->nome);
+
+            printf("Digite a idade do aluno: ");
+            if (!fgets(buf, sizeof(buf), stdin))
+                buf[0] = '\0';
+            strip_newline(buf);
+            a->idade = (int)strtol(buf, NULL, 10); // converte para int
+
+            printf("Digite o curso do aluno: ");
+            if (!fgets(a->curso, TAM_STRING, stdin))
+                a->curso[0] = '\0';
+            strip_newline(a->curso);
+
+            printf("Digite a media do aluno (ex: 7.5): ");
+            if (!fgets(buf, sizeof(buf), stdin))
+                buf[0] = '\0';
+            strip_newline(buf);
+            a->media = strtof(buf, NULL); // converte para float
+
+            printf("Digite a situacao do aluno (Aprovado/Reprovado/Rec.): ");
+            if (!fgets(a->situacao, TAM_MATRICULA, stdin))
+                a->situacao[0] = '\0';
+            strip_newline(a->situacao);
+
+            totalAlunos++;
+
+            printf("\nAluno cadastrado com sucesso!\n");
             printf("\nPressione enter para continuar...");
             getchar();
+        }
+        break;
+
+        case 2: 
+        { printf("\n--- Lista de alunos cadastrados ---\n\n");
+
+            if (totalAlunos ==0) {
+                printf("Nenhum aluno cadastrado ainda.\n");
+            } else 
+            {
+                for (int i = 0; i < totalAlunos; i++) {
+                    struct Aluno *a = &dados[i];
+                    printf("===========================================\n");
+                        printf("Aluno %d\n", i + 1);
+                        printf("Matricula: %s\n", a->matricula);
+                        printf("Nome     : %s\n", a->nome);
+                        printf("Idade    : %d\n", a->idade);
+                        printf("Curso    : %s\n", a->curso);
+                        printf("Media    : %.2f\n", a->media);
+                        printf("Situacao : %s\n", a->situacao);
+                }
+                printf("================================================\n");
+            }
+
+            printf("\nPressione enter para continuar...");
+            getchar();
+        } break;
+
+        case 0:
+
+            printf("\nSaindo do sistema...\n");
             break;
+
+            default:
+                printf("\nOpcao invalida! Tente novamente.\n");
+                printf("\nPressione Enter para continuar...");
+                getchar();
+                break; 
         }
 
+        
     } while (opcao != 0);
-
-    return 0; /*Fecho!*/
     
+    return 0;
 }
