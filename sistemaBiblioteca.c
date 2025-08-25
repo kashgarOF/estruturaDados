@@ -1,15 +1,15 @@
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h> // Para strcspn()
+#include <stdio.h> //padrão
+#include <stdlib.h> // conversões numericas (strtol/strtof)
+#include <string.h> // Para strcspn(), entre outras manipulações
 
 #define MAX_ALUNOS 100
 #define TAM_STRING 100
-#define TAM_MATRICULA 10
-#define TAM_BUF_NUM 32 // buffer temporário para números
+#define TAM_MATRICULA 20
+#define TAM_BUF_NUM 32 // buffer temporário para ler números como texto
 
-/*------ DEF STRUCT ------*/
 
+/*------ DEF DA STRUCT ------*/
 struct Aluno
 {
     char matricula[TAM_MATRICULA];
@@ -20,15 +20,15 @@ struct Aluno
     char situacao[TAM_MATRICULA];
 };
 
-/*------ UTIL: limpa \n de string lida com fgets ------*/
+/*------ remove "\n" que vem do fgets ------*/
 static void strip_newline(char *s)
 {
-    if (!s)
+    if (!s) //protege contra ponteiro null
         return;
     s[strcspn(s, "\n")] = '\0';
 }
 
-/*------ UTIL: limpar buffer do stdin após scanf ------*/
+/*------ descarta lixo ate fim da linha, otimo apos scanf ------*/
 void limparBufferUp(void)
 {
     int c;
@@ -56,11 +56,11 @@ int main(void)
         printf("=========================================\n");
         printf("Escolha uma opcao: ");
 
-        if (scanf("%d", &opcao) != 1)
+        if (scanf("%d", &opcao) != 1) //tentar ler opcao, se não lef 1 intem valido, trata erro
         {
             printf("\nOpcao invalida! Tente novamente.\n");
             limparBufferUp();
-            continue;
+            continue; //volta ao menu
         };
 
         limparBufferUp();
@@ -78,8 +78,8 @@ int main(void)
                 break;
             }
 
-            struct Aluno *a = &dados[totalAlunos]; /*ponteiro*/
-            char buf[TAM_BUF_NUM];
+            struct Aluno *a = &dados[totalAlunos]; /*ponteiro, "atalho" para apontar -> endereço estabelecido*/
+            char buf[TAM_BUF_NUM]; /*array temporario para ler fgets e depois converter*/
 
             printf("Digite a matricula do aluno: ");
             if (!fgets(a->matricula, TAM_MATRICULA, stdin))
@@ -95,7 +95,7 @@ int main(void)
             if (!fgets(buf, sizeof(buf), stdin))
                 buf[0] = '\0';
             strip_newline(buf);
-            a->idade = (int)strtol(buf, NULL, 10); // converte para int
+            a->idade = (int)strtol(buf, NULL, 10); /* --strtol-- converte string -> long(123). --strtof-- converte string -> float(0.12).*/
 
             printf("Digite o curso do aluno: ");
             if (!fgets(a->curso, TAM_STRING, stdin))
@@ -113,11 +113,11 @@ int main(void)
                 a->situacao[0] = '\0';
             strip_newline(a->situacao);
 
-            totalAlunos++;
+            totalAlunos++; //confirma o cadastro
 
             printf("\nAluno cadastrado com sucesso!\n");
             printf("\nPressione enter para continuar...");
-            getchar();
+            getchar(); //pausa
         }
         break;
 
@@ -129,7 +129,7 @@ int main(void)
             } else 
             {
                 for (int i = 0; i < totalAlunos; i++) {
-                    struct Aluno *a = &dados[i];
+                    struct Aluno *a = &dados[i]; // outro atalho para legit...
                     printf("===========================================\n");
                         printf("Aluno %d\n", i + 1);
                         printf("Matricula: %s\n", a->matricula);
@@ -146,12 +146,12 @@ int main(void)
             getchar();
         } break;
 
-        case 0:
+        case 0: //encerra codigo
 
             printf("\nSaindo do sistema...\n");
             break;
 
-            default:
+            default: //tratamento de erro
                 printf("\nOpcao invalida! Tente novamente.\n");
                 printf("\nPressione Enter para continuar...");
                 getchar();
