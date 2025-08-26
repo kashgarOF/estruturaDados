@@ -17,7 +17,14 @@ struct Aluno
     int idade;
     char curso[TAM_STRING];
     float media;
-    char situacao[TAM_MATRICULA];
+    //char situacao[TAM_MATRICULA];
+    int reprovado;
+    int aprovado; // 1 para aprovado e 0 para reprovado
+};
+
+struct Situacao {
+    int situacaoAluno; //qual aluno foi reprovado ou aprovado
+    char nomeAluno[TAM_STRING];
 };
 
 /*------ remove "\n" que vem do fgets ------*/
@@ -40,8 +47,19 @@ void limparBufferUp(void)
 
 int main(void)
 {
-    struct Aluno dados[MAX_ALUNOS];
+    struct Situacao *situacao;
+    situacao = (struct Situacao *) malloc(1 * sizeof(struct Situacao));
+
+    struct Aluno *dados;
+    dados = (struct Aluno *) calloc(MAX_ALUNOS, sizeof(struct Aluno));
+
+    if (situacao == NULL || dados == NULL) {
+        printf("Erro: Falha ao alocar memoria.\n");
+        return 1; //Retorna 1 para indicar um erro
+    }
+
     int totalAlunos = 0;
+    int situacaoP = 0;
     int opcao;
 
     do
@@ -52,6 +70,8 @@ int main(void)
         printf("=========================================\n");
         printf("1 - Cadastrar novo aluno\n");
         printf("2 - Listar todos os alunos cadastrados\n");
+        printf("3 - Indicar situacao do aluno\n");
+        printf("4 - Listar todos os alunos reprovados\n");
         printf("0 - Sair\n");
         printf("=========================================\n");
         printf("Escolha uma opcao: ");
@@ -108,10 +128,10 @@ int main(void)
             strip_newline(buf);
             a->media = strtof(buf, NULL); // converte para float
 
-            printf("Digite a situacao do aluno (Aprovado/Reprovado/Rec.): ");
+           /* printf("Digite a situacao do aluno (Aprovado/Reprovado/Rec.): ");
             if (!fgets(a->situacao, TAM_MATRICULA, stdin))
                 a->situacao[0] = '\0';
-            strip_newline(a->situacao);
+            strip_newline(a->situacao);*/
 
             totalAlunos++; //confirma o cadastro
 
@@ -137,7 +157,7 @@ int main(void)
                         printf("Idade    : %d\n", a->idade);
                         printf("Curso    : %s\n", a->curso);
                         printf("Media    : %.2f\n", a->media);
-                        printf("Situacao : %s\n", a->situacao);
+                      //  printf("Situacao : %s\n", a->situacao);
                 }
                 printf("================================================\n");
             }
@@ -145,6 +165,18 @@ int main(void)
             printf("\nPressione enter para continuar...");
             getchar();
         } break;
+
+        case 4: { //indicar situação do aluno
+            printf("--- Indique situacao do aluno (Reprovado ou aprovado)\n\n");
+
+            int reprovado = 0;
+            for (int i = 0; i < totalAlunos; i++) {
+                if (dados[i].reprovado) {
+                    printf("%d - %s\n", i + 1, dados[i].nome);
+                    reprovado++;
+                }
+            }
+        }
 
         case 0: //encerra codigo
 
