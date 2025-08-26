@@ -1,5 +1,5 @@
 
-#include <stdio.h> //padrão
+#include <stdio.h> // I/O: printf, scanf, fgets, getchar
 #include <stdlib.h> // conversões numericas (strtol/strtof)
 #include <string.h> // Para strcspn(), entre outras manipulações
 
@@ -17,14 +17,7 @@ struct Aluno
     int idade;
     char curso[TAM_STRING];
     float media;
-    //char situacao[TAM_MATRICULA];
-    int reprovado;
-    int aprovado; // 1 para aprovado e 0 para reprovado
-};
-
-struct Situacao {
-    int situacaoAluno; //qual aluno foi reprovado ou aprovado
-    char nomeAluno[TAM_STRING];
+    int situacao; //1 = aprovado, 0 = reprovado, 2 recuperacao, -1 indefinido
 };
 
 /*------ remove "\n" que vem do fgets ------*/
@@ -43,23 +36,76 @@ void limparBufferUp(void)
         ;
 }
 
+//minusculiza
+static void str_tolower(char *s){
+    for(; s && *s; ++s) {
+        if(*s >= 'A' && *s <= 'Z') *s = (char)(*s - 'A' + 'a');
+    }
+}
+
+//mapeia texto -> codigo da situação
+static int parse_situacao(char *s){
+    if (!s) return -1;
+    strip_newline(s);
+    str_tolower(s);
+
+    //aceita pequenas variações
+    if(strcmp(s, "aprovado") == 0 || strcmp(s, "aprovada") == 0) return 1;
+    if(strcmp(s, "reprovado") == 0 || strcmp(s, "reprovada") == 0) return 0;
+    if(strcmp(s, "recuperacao") == 0 || strcmp(s, "recuperação") == 0 || strcmp(s, "rec") == 0) return 2;
+
+    return -1;
+}
+
+//converte codigo -> string amigavel
+static const char* print_situacao(int cod){
+    switch (cod) {
+        case 1: return "Aprovado";
+        case 0: return "Reprovado";
+        case 2: return "Recuperacao";
+        default : return "Indefinido";
+    }
+}
+
+// Lista de alunos por filtro de situação, if filtro < 0 lista todos
+static void listarAlunos(const struct Aluno *dados, int total, int filtroSituacao) {
+    if (total == 0) {
+        printf("Nenhum aluno cadastrado ainda\n");
+        return;
+    }
+
+    int mostrados = 0;
+    for (int i = 0; i < total; i++) {
+        const struct Aluno *a = &dados[i];
+        if (filtroSituacao >= 0 && a->situacao != filtroSituacao) continue;
+
+        printf("===========================================\n");
+        printf("Aluno %d\n", i + 1);
+        printf("Matricula: %s\n", a->matricula);
+        printf("Nome     : %s\n", a->nome);
+        printf("Idade    : %d\n", a->idade);
+        printf("Curso    : %s\n", a->curso);
+        printf("Media    : %.2f\n", a->media);
+        printf("Situacao : %s\n", print_situacao(a->situacao));
+        mostrados++;
+    }
+
+    if(mostrados == 0) {
+        printf("Nenhum aluno com a situacao solicitada.\n");
+    }
+}
+
 /*--- FUNÇÃO PRINCIPAL ---*/
 
 int main(void)
 {
-    struct Situacao *situacao;
-    situacao = (struct Situacao *) malloc(1 * sizeof(struct Situacao));
-
-    struct Aluno *dados;
-    dados = (struct Aluno *) calloc(MAX_ALUNOS, sizeof(struct Aluno));
-
-    if (situacao == NULL || dados == NULL) {
-        printf("Erro: Falha ao alocar memoria.\n");
-        return 1; //Retorna 1 para indicar um erro
+    struct Aluno *dados = (struct Aluno *) calloc(MAX_ALUNOS, sizeof(struct Aluno));
+    if(!dados) {
+        fprintf(stderr, "erro: sem memoria.\n");
+        return 1;
     }
 
     int totalAlunos = 0;
-    int situacaoP = 0;
     int opcao;
 
     do
@@ -70,13 +116,13 @@ int main(void)
         printf("=========================================\n");
         printf("1 - Cadastrar novo aluno\n");
         printf("2 - Listar todos os alunos cadastrados\n");
-        printf("3 - Indicar situacao do aluno\n");
-        printf("4 - Listar todos os alunos reprovados\n");
+        printf("3 - Listar todos os alunos Aprovados\n");
+        printf("4 - Listar todos os alunos Reprovados\n");
         printf("0 - Sair\n");
         printf("=========================================\n");
         printf("Escolha uma opcao: ");
 
-        if (scanf("%d", &opcao) != 1) //tentar ler opcao, se não lef 1 intem valido, trata erro
+        if (scanf("%d", &opcao) != 1) //tentar ler opcao, se não ler 1 intem valido, trata erro
         {
             printf("\nOpcao invalida! Tente novamente.\n");
             limparBufferUp();
@@ -128,58 +174,57 @@ int main(void)
             strip_newline(buf);
             a->media = strtof(buf, NULL); // converte para float
 
-           /* printf("Digite a situacao do aluno (Aprovado/Reprovado/Rec.): ");
-            if (!fgets(a->situacao, TAM_MATRICULA, stdin))
-                a->situacao[0] = '\0';
-            strip_newline(a->situacao);*/
+            printf("Digite a situacao do aluno (Aprovado/Reprovado/Recuperacao.): ");
+            if (!fgets(buf, sizeof(buf), stdin)) buf[0] = '\0';
+            a->situacao = parse_situacao(buf);
+            
+            if (a->situacao == -1) {
+                    printf("\nSituacao invalida. Use Aprovado, Reprovado ou Recuperacao.\n");
+                    printf("Cadastro cancelado.\n");
+                    printf("\nPressione enter para continuar...");
+                    getchar();
+                    break; // sai sem incrementar totalAlunos
+            }
+                
 
             totalAlunos++; //confirma o cadastro
 
             printf("\nAluno cadastrado com sucesso!\n");
             printf("\nPressione enter para continuar...");
             getchar(); //pausa
-        }
-        break;
+        } break;
 
-        case 2: 
+        case 2:  //lista todos
         { printf("\n--- Lista de alunos cadastrados ---\n\n");
 
-            if (totalAlunos ==0) {
-                printf("Nenhum aluno cadastrado ainda.\n");
-            } else 
-            {
-                for (int i = 0; i < totalAlunos; i++) {
-                    struct Aluno *a = &dados[i]; // outro atalho para legit...
-                    printf("===========================================\n");
-                        printf("Aluno %d\n", i + 1);
-                        printf("Matricula: %s\n", a->matricula);
-                        printf("Nome     : %s\n", a->nome);
-                        printf("Idade    : %d\n", a->idade);
-                        printf("Curso    : %s\n", a->curso);
-                        printf("Media    : %.2f\n", a->media);
-                      //  printf("Situacao : %s\n", a->situacao);
-                }
-                printf("================================================\n");
-            }
-
-            printf("\nPressione enter para continuar...");
+            listarAlunos(dados, totalAlunos, -1);
+            printf("\nPressione enter para continuar....");
             getchar();
         } break;
 
-        case 4: { //indicar situação do aluno
-            printf("--- Indique situacao do aluno (Reprovado ou aprovado)\n\n");
+       case 3: {//lista aprovados
+            printf("\n--- Alunos Aprovados ---\n\n");
+                listarAlunos(dados, totalAlunos, 1);
+                // contador opcional
+                int ap = 0;
+                for (int i = 0; i < totalAlunos; i++) if (dados[i].situacao == 1) ap++;
+                printf("\nTotal de aprovados: %d\n", ap);
+                printf("\nPressione enter para continuar...");
+                getchar();
+       } break;
 
-            int reprovado = 0;
-            for (int i = 0; i < totalAlunos; i++) {
-                if (dados[i].reprovado) {
-                    printf("%d - %s\n", i + 1, dados[i].nome);
-                    reprovado++;
-                }
-            }
-        }
-
+       case 4: { //lista reprovados
+            printf("\n--- Alunos Reprovados ---\n\n");
+                listarAlunos(dados, totalAlunos, 0);
+                int rp = 0;
+                for (int i = 0; i < totalAlunos; i++) if (dados[i].situacao == 0) rp++;
+                printf("\nTotal de reprovados: %d\n", rp);
+                printf("\nPressione enter para continuar...");
+                getchar();
+       }break;
+       
         case 0: //encerra codigo
-
+        {
             printf("\nSaindo do sistema...\n");
             break;
 
@@ -189,9 +234,10 @@ int main(void)
                 getchar();
                 break; 
         }
-
-        
+    }
     } while (opcao != 0);
+
+    free(dados); //libera memoria alocada
     
     return 0;
 }
