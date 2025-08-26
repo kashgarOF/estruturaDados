@@ -36,7 +36,7 @@ int main(void)
     int opcao;
 
     do 
-    {
+    { //menu
         printf("=========================================\n");
         printf("           DADOS DOS TERRITORIOS         \n");
         printf("=========================================\n");
