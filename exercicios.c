@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_INFO 30
+#define MAX_TERRITORIO 30
 #define MAX_NOME 30
 #define MAX_COR 10
 #define MAX_BUFF_NUM 32
@@ -10,7 +10,7 @@
 
 
 /*--- Estrutura do territorio ---*/
-struct territorio {
+struct Territorio {
     char nome[MAX_NOME];
     char cor[MAX_COR];
     int tropas;
@@ -28,10 +28,11 @@ void limparBufferUp(void) {
     while ((c = getchar()) != '\n' && c != EOF);
 }
 
+
 /*--- Função principal ---*/
 int main(void) 
 {
-    struct territorio dados[MAX_INFO];
+    struct Territorio *dados = (struct Territorio *) calloc(MAX_TERRITORIO, sizeof(struct Territorio));
     int totalInfo = 0;
     int opcao;
 
@@ -41,7 +42,8 @@ int main(void)
         printf("           DADOS DOS TERRITORIOS         \n");
         printf("=========================================\n");
         printf("1 - Cadastrar novo Territorio\n");
-        printf("2 - Listar todos os Territorios cadastrados\n");
+        printf("2 - Mapa mundial (atual)\n");
+        printf("3 - Campo de batalha\n");
         printf("0 - Sair\n");
         printf("=========================================\n");
         printf("Escolha uma opcao: ");
@@ -59,14 +61,14 @@ int main(void)
             case 1: { /*---Cadastro---*/
                 printf("--- Cadastro de um novo territorio ---");
 
-                if (totalInfo >= MAX_INFO) {
+                if (totalInfo >= MAX_TERRITORIO) {
                     printf("Quantidade maxima atingida! Não é possivel cadastrar mais territorios.");
                     printf("\nPressione enter para continuar....");
                     getchar();
                     break;
                 }
 
-                struct territorio *a = &dados[totalInfo]; // *ponteiro/atalho para -> total info
+                struct Territorio *a = &dados[totalInfo]; // *ponteiro/atalho para -> total info
                 char buf [MAX_BUFF_NUM]; //armazena array temp de string e converte para int
 
                 printf("Digite o nome do territorio; ");
@@ -99,7 +101,7 @@ int main(void)
                     printf("Nenhum territorio cadastrado ainda.\n");
                 } else {
                     for (int i = 0; i < totalInfo; i++) {
-                        struct territorio *a = &dados[i]; //atalho para legite
+                        struct Territorio *a = &dados[i]; //atalho para legite
                         printf("===========================================\n");
                         printf("Territorio %d\n", i + 1);
                         printf("Nome     : %s\n", a->nome);
