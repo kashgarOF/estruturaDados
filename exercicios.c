@@ -1,14 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include <stdio.h>      // Para entrada e saída (printf, scanf, fgets, getchar)
+#include <stdlib.h>     // Para alocação de memória (calloc, realloc, free) e conversão (strtol), aleatoriedade (rand, srand)
+#include <string.h>     // Para manipulação de strings (strncpy, strcspn)
+#include <time.h>       // Para usar o tempo atual como "semente" do gerador aleatório (time)
 
 //#define MAX_TERRITORIO 30
 #define MAX_NOME 30
 #define MAX_COR 10
 #define MAX_BUFF_NUM 32
-//int g_num_territorios = 0; //tamanho real do mapa
-
 
 
 /*--- Estrutura do territorio ---*/
@@ -18,27 +16,129 @@ struct Territorio {
     int tropas;
 };
 
+//vetor(array)
+struct Territorio *mapa = NULL; //null -> aponta para lugar nenhum
+int capacidade = 0; //é o tamanho alocado
+int usados = 0; // quantos da "capacidade" foram usados
+
+
 /*---Limpa "\n" do fgets---*/
 static void strip_newline(char *s) {
     if (!s) return;
     s[strcspn(s, "\n")] = '\0';
 }
 
-/*--- função criada usando void, no caso sem retorno, apenas executa sua ação: limpar buffer---*/
+/*---limpar buffer -> limpando o caminho para a proxima leitura---*/
 void limparBufferUp(void) {
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
 }
 
-struct Territorio *mapa = NULL;
-int capacidade = 0; //é o tamanho alocado
-int usados = 0; // quantos registros validos
+
+static int rolar_d6(void) {
+    return (rand() % 6) + 1;
+}
+
+//lista de atac/def
+static void lista_compacta(const struct Territorio *v, int n) {
+    for (int i = 0; i < n; i++) {
+        printf("[%d] %-20s | dono=%-10s | tropas=%d\n",
+        i, v[i].nome, v[i].cor, v[i].tropas);
+    }
+}
+
+//le indice com validação basica (0...limite-1)
+static int ler_indice(const char *prompt, int limite) {
+    char buf[64];
+    long idx;
+    while (1) {
+        printf("%s", prompt);
+        if (!fgets(buf, sizeof buf, stdin)) return -1;
+        idx = strtol(buf, NULL, 10);
+        if (idx >= 0 && idx < limite) return (int)idx;
+        puts("Indice invalido. Tente novamente.");
+    }
+}
+
+//regras minimas atac
+static int pode_atacar(const struct Territorio *atac, const struct Territorio *def) {
+    //pelo menos 2 tropas para atac
+    if (atac->tropas <= 2) return 0;
+    //não pode atacar territorio da mesma cor
+    if (strncmp(atac->cor, def->cor, MAX_COR) == 0) return 0;
+    //defensor com 0 ja vai cair direto
+    return 1;
+}
+
+void atacar(struct Territorio *atac, struct Territorio *def){
+    //checar pre-cond 
+    if(atac == NULL || def == NULL) return;
+    if(atac == def) {
+        puts("Não pode atacar o mesmo territorio.");
+        return;
+    }
+
+    //se não puder atacar, sai
+    if(atac->tropas < 2) {
+        puts("Atacante não possui tropas suficientes (min.: 2).");
+        return;
+    }
+
+    printf("\n-- BATALHA --\n");
+    printf("Atacante: %s (cor=%s, tropas=%d)\n", atac->nome, atac->cor, atac->tropas);
+    printf("Defensor: %s (cor=%s, tropas=%d)\n", def->nome, def->cor, def->tropas);
+
+    //se o def ja estiver sem tropas, captura
+    if (def->tropas <= 0) {
+        printf("Defensor sem tropas, captura direta!\n");
+        //ocupa com 1 tropa
+        if (atac->tropas >= 2) {
+            def->tropas = 1;
+            atac->tropas -= 1;
+            //troca cor
+            strncpy(def->cor, atac->cor, MAX_COR);
+            def->cor[MAX_COR-1] = '\0';
+            printf("Territorio %s capturado! Novo dodo: %s\n", def->nome, def->cor);
+        } else {
+            puts("Mas o atacante não tem tropas para ocupar, Captura fracassou!");
+        }
+        return;
+    }
+
+    // 1 rodada: 1 dado cada
+    int d_atac = rolar_d6();
+    int d_def = rolar_d6();
+    printf("ROlagem: Atacante=%d x defensor=%d\n", d_atac, d_def);
+
+    if (d_atac > d_def) {
+        def->tropas -= 1;
+        printf("Defensor perde 1 tropa. Tropas def=%d\n", def->tropas);
+    } else {
+        atac->tropas -= 1;
+        printf("Atacante perde 1 tropa. Tropas atac=%d\n", atac->tropas);
+    }
+
+    //verifica captura
+    if (def->tropas <= 0) {
+        if (atac->tropas >= 2) {
+            def->tropas = 1;
+            atac->tropas -=1;
+            strncpy(def->cor, atac->cor, MAX_COR);
+            def->cor[MAX_COR-1] = '\0';
+            printf("Territorio %s capturado! Novo dono: %s\n", def->nome, def->cor);
+            printf("Ocupacao: 1 Tropa movida para o territorio conquistado.\n");
+        } else {
+            //chegou aqui sem tropas suficientes para ocupar
+            puts("defensor zerou, mas atacante nao possui tropas para ocupar, captura falhou!");
+            def->tropas = 1;
+        }
+    }
+
+    puts("-- FIM DA RODADA --");
+}
 
 
-
-
-
-/*--- Função principal ---*/
+/*------------------ FUNÇÃO PRINCIAL ---------------------------*/
 int main(void) 
 {
     // semente pro rand()
@@ -57,7 +157,7 @@ int main(void)
     int opcao;
     capacidade = (int)n;
 
-    mapa = calloc(capacidade, sizeof *mapa);
+    mapa = calloc(capacidade, sizeof *mapa);//alloca a "estante" inicial
         if (!mapa) { // se calloc falhar ele não devolve um endereço valido, e avisa o erro e o motivo
             perror("calloc: Cannot allocate memory");
             return 1;
@@ -73,6 +173,7 @@ int main(void)
         printf("1 - Cadastrar novo Territorio\n");
         printf("2 - Mapa mundial (atual)\n");
         printf("3 - Campo de batalha\n");
+        printf("4 - Dobra a capacidade\n");
         printf("0 - Sair\n");
         printf("=========================================\n");
         printf("Escolha uma opcao: ");
@@ -90,24 +191,13 @@ int main(void)
             case 1: { /*---Cadastro---*/
                 printf("--- Cadastro de um novo territorio ---");
 
-                /*if (g_num_territorios = 100) {
-                    printf("Quantidade maxima atingida! Não é possivel cadastrar mais territorios.");
+                if (capacidade == usados) {
+                    printf("Quantidade maxima atingida! Nao e possivel cadastrar mais territorios.");
                     printf("\nPressione enter para continuar....");
                     getchar();
                     break;
-                }*/
-
-                if (usados == capacidade) {
-                    int nova = capacidade ? capacidade * 2 : 1;
-                    struct Territorio *tmp = realloc(mapa, nova * sizeof *tmp);
-                    if(!tmp) { perror("realloc");
-                        printf("Falha ao crescer o vetor. Registro nao cadastrado\n");
-                        printf("Pressione enter para continuar...");
-                        break;} //volta ao menu sem mexer em mapa
-                    mapa = tmp;
-                    capacidade = nova;
                 }
-
+                
                 struct Territorio *a = &mapa[usados];
                 char buf [MAX_BUFF_NUM]; //armazena array temp de string e converte para int
 
@@ -155,8 +245,65 @@ int main(void)
             } break;
 
             case 3: {//batalha
+                if (usados < 2) {
+                    puts("Precisa de pelo menos 2 territorios cadastrados.");
+                    printf("Pressione enter para continuar...");
+                    getchar();
+                    break;
+                }
+
+                printf("\n-- SELECIONE ATACANTE E DEFENSOR --\n");
+                lista_compacta(mapa, usados);
+
+                int i_atac = ler_indice("Indice do ATACANTE: ", usados);
+                int i_def = ler_indice("Indice do DEFENSOR: ", usados);
+
+                if (i_atac == i_def) {
+                    puts("Atacante e defensor nao podem ser o mesmo.");
+                    printf("Pressione enter para continuar...");
+                    getchar();
+                    break;
+                }
+
+                struct Territorio *atac = &mapa[i_atac];
+                struct Territorio *def = &mapa[i_def];
+
+                if (!pode_atacar(atac, def)) {
+                    puts("Ataque nao permitido (Tropas insuficientes ou mesma cor).");
+                    printf("Pressione Enter para continuar...");
+                    getchar();
+                    break;
+                }
+
+                atacar(atac, def);
+
+                printf("\nEstado atualizado:\n");
+                lista_compacta(mapa, usados);
+
+                printf("Pressione Enter para continuar...");
+                getchar();
+
 
             } break;
+
+            case 4: { //aumenta capacidade
+                if (usados == capacidade) {
+                    // Dobra o tamanho da capacidade
+                    int nova = capacidade ? capacidade * 2 : 1;
+                    
+                    // Tenta alocar uma estante nova, maior.
+                    struct Territorio *tmp = realloc(mapa, nova * sizeof *tmp);
+                    
+                    if(!tmp) { // Se não conseguir (faltou memória no PC)
+                        perror("realloc");
+                        printf("Falha ao crescer o vetor. Registro nao cadastrado\n");
+                        printf("Pressione enter para continuar...");
+                        break;} //volta ao menu sem mexer em mapa
+                        
+                    mapa = tmp;
+                    capacidade = nova;
+                }
+            }
            
             case 0: //sair
 
