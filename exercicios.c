@@ -7,7 +7,7 @@
 #define MAX_NOME 30
 #define MAX_COR 10
 #define MAX_BUFF_NUM 32
-
+#define MAX_MISSAO 120
 
 /*--- Estrutura do territorio ---*/
 struct Territorio {
@@ -15,6 +15,22 @@ struct Territorio {
     char cor[MAX_COR];
     int tropas;
 };
+
+struct Jogador {
+    char nome[32];
+    char cor[MAX_COR];  // mesma largura usada nos territórios
+    char *missao;       // armazenada via malloc (dinâmico)
+};
+
+static const char *MISSOES[] = {
+    "Controlar pelo menos 3 territorios da sua cor",
+    "Controlar pelo menos 2 territorios da sua cor",
+    "Somar 15 ou mais tropas na sua cor",
+    "Eliminar todas as tropas da cor Azul",
+    "Eliminar todas as tropas da cor Vermelha"
+};
+
+static const int TOTAL_MISSOES = sizeof(MISSOES)/sizeof(MISSOES[0]);
 
 //vetor(array)
 struct Territorio *mapa = NULL; //null -> aponta para lugar nenhum
@@ -63,7 +79,7 @@ static int ler_indice(const char *prompt, int limite) {
 //regras minimas atac
 static int pode_atacar(const struct Territorio *atac, const struct Territorio *def) {
     //pelo menos 2 tropas para atac
-    if (atac->tropas <= 2) return 0;
+    if (atac->tropas < 2) return 0;
     //não pode atacar territorio da mesma cor
     if (strncmp(atac->cor, def->cor, MAX_COR) == 0) return 0;
     //defensor com 0 ja vai cair direto
@@ -138,6 +154,51 @@ void atacar(struct Territorio *atac, struct Territorio *def){
 }
 
 
+// Contagem de territorios da cor e soma de tropas (ajudam na verificação)
+static int contar_territorios_cor(const struct Territorio *mapa, int n, const char *cor) {
+    int c = 0;
+    for (int i = 0; i < n; ++i)
+        if (strncmp(mapa[i].cor, cor, MAX_COR) == 0) c++;
+    return c;
+}
+
+static int somar_tropas_cor(const struct Territorio *mapa, int n, const char *cor) {
+    int t = 0;
+    for (int i = 0; i < n; ++i)
+        if (strncmp(mapa[i].cor, cor, MAX_COR) == 0) t += mapa[i].tropas;
+    return t;
+}
+
+// Sorteio e cópia (destino já deve estar alocado com MAX_MISSAO)
+void atribuirMissao(char *destino, const char *missoes[], int totalMissoes) {
+    int idx = rand() % totalMissoes;
+    strcpy(destino, missoes[idx]);
+}
+
+void exibirMissao(const char *missao, const char *nomeJogador) {
+    printf("\nMissao de %s: %s\n(Guarde essa informacao. Nao sera exibida novamente neste turno.)\n",
+           nomeJogador, missao);
+}
+
+// Verificação simples baseada no texto da missão
+int verificarMissao(const char *missao, const struct Territorio *mapa, int n, const char *corJog) {
+    int qt = contar_territorios_cor(mapa, n, corJog);
+    int tp = somar_tropas_cor(mapa, n, corJog);
+
+    if (strstr(missao, "Controlar pelo menos 3 territorios") && qt >= 3) return 1;
+    if (strstr(missao, "Controlar pelo menos 2 territorios") && qt >= 2) return 1;
+    if (strstr(missao, "Somar 15 ou mais tropas") && tp >= 15) return 1;
+
+    if (strstr(missao, "Eliminar todas as tropas da cor Azul")) {
+        if (somar_tropas_cor(mapa, n, "Azul") == 0) return 1;
+    }
+    if (strstr(missao, "Eliminar todas as tropas da cor Vermelha")) {
+        if (somar_tropas_cor(mapa, n, "Vermelha") == 0) return 1;
+    }
+    return 0;
+}
+
+
 /*------------------ FUNÇÃO PRINCIAL ---------------------------*/
 int main(void) 
 {
@@ -161,6 +222,44 @@ int main(void)
         if (!mapa) { // se calloc falhar ele não devolve um endereço valido, e avisa o erro e o motivo
             perror("calloc: Cannot allocate memory");
             return 1;
+        }
+
+        int numJogadores = 0;
+        printf("Quantos jogadores? ");
+        if (!fgets(buf, sizeof buf, stdin))
+            return 1;
+        numJogadores = (int)strtol(buf, NULL, 10);
+        if (numJogadores <= 0 || numJogadores > 6)
+            numJogadores = 2; // default simples
+
+        struct Jogador *J = calloc(numJogadores, sizeof *J);
+        if (!J)
+        {
+            perror("calloc jogadores");
+            free(mapa);
+            return 1;
+        }
+
+        for (int j = 0; j < numJogadores; ++j)
+        {
+            printf("\nJogador %d - nome: ", j + 1);
+            if (!fgets(J[j].nome, sizeof J[j].nome, stdin))
+                J[j].nome[0] = '\0';
+            strip_newline(J[j].nome);
+
+            printf("Jogador %d - cor (deve bater com os territorios): ", j + 1);
+            if (!fgets(J[j].cor, sizeof J[j].cor, stdin))
+                J[j].cor[0] = '\0';
+            strip_newline(J[j].cor);
+
+            J[j].missao = malloc(MAX_MISSAO);
+            if (!J[j].missao)
+            {
+                perror("ERRO:malloc-missao");
+            }
+
+            atribuirMissao(J[j].missao, MISSOES, TOTAL_MISSOES);
+            exibirMissao(J[j].missao, J[j].nome); // exibe uma vez no início
         }
 
     do 
@@ -280,6 +379,23 @@ int main(void)
                 printf("\nEstado atualizado:\n");
                 lista_compacta(mapa, usados);
 
+                int houveVencedor = 0;
+                for (int j = 0; j < numJogadores; ++j)
+                {
+                    if (verificarMissao(J[j].missao, mapa, usados, J[j].cor))
+                    {
+                        printf("\n>>> VITORIA: %s cumpriu a missao!\n", J[j].nome);
+                        houveVencedor = 1;
+                    }
+                }
+                if (houveVencedor)
+                {
+                    printf("Pressione Enter para encerrar o jogo...");
+                    getchar();
+                    opcao = 0; // encerra o loop principal
+                    break;
+                }
+
                 printf("Pressione Enter para continuar...");
                 getchar();
 
@@ -303,7 +419,11 @@ int main(void)
                     mapa = tmp;
                     capacidade = nova;
                 }
-            }
+                
+                printf("foi adicionado mais capacidade, agora voce pode cadastrar mais territorios!\n");
+                printf("Pressiona enter para continuar...");
+                getchar();
+            } break;
            
             case 0: //sair
 
@@ -319,7 +439,11 @@ int main(void)
 
     } while (opcao != 0);
 
-    free(mapa); //liberar memoria allocada
+    //libera memoria
+    for (int j = 0; j < numJogadores; ++j) 
+        free(J[j].missao);
+    free(J);
+    free(mapa);
 
     return 0;
 }
