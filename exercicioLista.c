@@ -5,33 +5,43 @@
 #define TAM_MAX 10
 #define MAX_STR_LEN 30
 
+// Struct que define UM item
+typedef struct {
+    char nome[MAX_STR_LEN];
+    char tipo[20];
+    int quantidade;
+} Item;
 
 //Estatico
+
+// Struct do inventário que guarda um VETOR de Itens
 typedef struct {
-    char nomes [TAM_MAX][MAX_STR_LEN];
-    char tipo [MAX_STR_LEN];
-    int quantidade;
+    Item itens[TAM_MAX]; 
+    size_t quantidade;  
 } InventarioEstatico;
 
-// funções (modularização)
+// funções (modularização) 
+
+/*--------------------------- estatica --------------------------*/
 void inicializarInvetario (InventarioEstatico *lista);
-void inserirItem (InventarioEstatico *lista, const char* texto);
+void inserirItemEstatico(InventarioEstatico *inv, const char* nome, const char* tipo, int quantidade);
 void removerItem (InventarioEstatico *lista, const char* texto);
-void listarInventarioEstatico (const InventarioEstatico *lista);
+void listarInventarioEstatico (const InventarioEstatico *inv);
 void menuInventarioEstatico();
 
 
-//encadeado
-typedef struct Inv {
-    char *nome;
-    struct Inv *proximo;
-}Inv;
+/*-----------------------encadeada---------------------------------*/
+// O mesmo 'Item' da lista estática será usado aqui
+typedef struct No {
+    Item dados; // O 'Nó' agora carrega a struct 'Item' inteira
+    struct No *proximo;
+} No;
 
-typedef Inv* InventarioEncadeado;
+typedef No* InventarioEncadeado;
 
 //funções (encadeada)
 void inicializarInvetarioEncadeado (InventarioEncadeado *lista);
-void inserirItemEncadeado (InventarioEncadeado *lista, const char* texto);
+void inserirItemEncadeado (InventarioEncadeado *lista, const char* nome, const char* tipo, int quantidade);
 void removerItemEncadeado (InventarioEncadeado *lista, const char* texto);
 void listarInventarioEncadeado (const InventarioEncadeado lista);
 void liberarInventarioEncadeado (InventarioEncadeado *lista);
@@ -76,7 +86,9 @@ void menuInventarioEstatico() {
     InventarioEstatico lista;
     inicializarInvetario(&lista);
     int opcao;
-    char texto[MAX_STR_LEN];
+    char nome[MAX_STR_LEN];
+    char tipo[20]; //conforme a struct item
+    int quantidade;
 
     do
     {
@@ -91,16 +103,28 @@ void menuInventarioEstatico() {
 
         switch (opcao) {
             case 1:
-                printf("Digite o item a inserir: ");
-                fgets(texto, MAX_STR_LEN, stdin);
-                texto[strcspn(texto, "\n")] = 0; // Remove o '\n' do final
-                inserirItem(&lista, texto);
+                //pedindo o nome
+                printf("Digite o nome do item:");
+                fgets(nome, MAX_STR_LEN, stdin);
+                nome[strcspn(nome, "\n")] = 0;
+
+                //pedindo o tipo
+                printf("Digite o tipo do item(Ex: arma, cura, ferramenta):");
+                fgets(tipo, 20, stdin);
+                tipo[strcspn(tipo, "\n")] = 0;
+
+                //pedindo a quantidade
+                printf("Digite a quantidade:");
+                scanf("%d", &quantidade);                
+                getchar();
+
+                inserirItemEstatico(&lista, nome, tipo, quantidade);
                 break;
             case 2:
                 printf("Digite o item a remover: ");
-                fgets(texto, MAX_STR_LEN, stdin);
-                texto[strcspn(texto, "\n")] = 0;
-                removerItem(&lista, texto);
+                fgets(nome, MAX_STR_LEN, stdin);
+                nome[strcspn(nome, "\n")] = 0;
+                removerItem(&lista, nome);
                 break;
             case 3:
                 listarInventarioEstatico(&lista);
@@ -119,7 +143,9 @@ void menuInventarioEncadeado() {
     InventarioEncadeado lista;
     inicializarInvetarioEncadeado(&lista);
     int opcao;
-    char texto[MAX_STR_LEN];
+    char nome[MAX_STR_LEN];
+    char tipo[20];
+    int quantidade;
 
     do
     {
@@ -134,16 +160,25 @@ void menuInventarioEncadeado() {
 
         switch (opcao) {
             case 1:
-                printf("Digite o item a inserir: ");
-                fgets(texto, MAX_STR_LEN, stdin);
-                texto[strcspn(texto, "\n")] = 0; // Remove o '\n' do final
-                inserirItemEncadeado(&lista, texto);
+                printf("Digite o nome do item:");
+                fgets(nome, MAX_STR_LEN, stdin);
+                nome[strcspn(nome, "\n")] = 0;
+
+                printf("Digite o tipo do item(Ex: arma, cura, ferramenta):");
+                fgets(tipo, 20, stdin);
+                tipo[strcspn(tipo, "\n")] = 0;
+
+                printf("Digite a quantidade:");
+                scanf("%d", &quantidade);                
+                getchar();
+
+                inserirItemEncadeado(&lista, nome, tipo, quantidade);
                 break;
             case 2:
                 printf("Digite o item a remover: ");
-                fgets(texto, MAX_STR_LEN, stdin);
-                texto[strcspn(texto, "\n")] = 0;
-                removerItemEncadeado(&lista, texto);
+                fgets(nome, MAX_STR_LEN, stdin);
+                nome[strcspn(nome, "\n")] = 0;
+                removerItemEncadeado(&lista, nome);
                 break;
             case 3:
                 listarInventarioEncadeado(lista);
@@ -165,144 +200,185 @@ void inicializarInvetario (InventarioEstatico *lista) {
     lista->quantidade = 0;
 }
 
+/*--------------------------INSERIR ESTATICA-----------------------------------*/
 
-void inserirItem (InventarioEstatico *lista, const char* texto) {
-    if (lista->quantidade >= TAM_MAX) {
-        printf("Erro: lista cheia! Nao e possivel inserir mais.\n");
+void inserirItemEstatico(InventarioEstatico *inv, const char *nome, const char *tipo, int quantidade)
+{
+
+    if (inv->quantidade >= TAM_MAX)
+    {
+        printf("Erro: Inventario estatico cheio!\n");
         return;
     }
-    //copia o conteudo do "texto" para a posição correta na matriz nome
-    strcpy(lista->nomes[lista->quantidade], texto);
-    lista->quantidade++;
-    printf("Item \"%s\" Inserido com sucesso.\n", texto);
+
+    Item *novoItem = &inv->itens[inv->quantidade];
+
+    // 3. Copiamos os dados recebidos para dentro da struct nesse espaço livre.
+    strcpy(novoItem->nome, nome);
+    strcpy(novoItem->tipo, tipo);
+    novoItem->quantidade = quantidade;
+
+    // 4. Incrementamos o contador de itens, como antes.
+    inv->quantidade++;
+
+    printf("Item '%s' (Tipo: %s, Qtd: %d) inserido com sucesso.\n", nome, tipo, quantidade);
 }
+
+/*--------------------------REMOVER ESTATICA-----------------------------------*/
 
 void removerItem (InventarioEstatico *lista, const char* texto) {
     int i, pos = -1;
 
     //vamos usar strcmp() para comparar strings, retona 0 se forem iguais.
     // a função percorre os itens em uso na lista de 0 ate quantidade.
-    for (i = 0; i < lista->quantidade; i++) {
-        if (strcmp(lista->nomes[i], texto) ==0) {
-            pos = i;
+       for (size_t i = 0; i < lista->quantidade; i++) {
+        if (strcmp(lista->itens[i].nome, texto) == 0) {
+            pos = (int)i;
             break;
         }
     }
 
-    if (pos == -1) {
+        if (pos == -1) {
         printf("Erro: Item \"%s\" nao encontrado no invetario.\n", texto);
         return;
     }
 
     // Deslocar os elementos posteriores para a esquerda usando strcpy.
-    for (i = pos; i < lista->quantidade - 1; i++) {
-        strcpy(lista->nomes[i], lista->nomes[i + 1]);
+  //Usando '=' para copiar a struct inteira
+    for (size_t i = (size_t)pos; i < lista->quantidade - 1; i++) {
+        lista->itens[i] = lista->itens[i + 1];
     }
 
     lista->quantidade--; //atualização do contador
     printf("Item \"%s\" removido com sucesso.\n", texto);
 }
 
-void listarInventarioEstatico (const InventarioEstatico *lista) {
-    printf("\nItens do Invetario Estatico:\n");
-    if (lista->quantidade == 0) {
-        printf("O invetario estatico esta vazio.\n");
+/*--------------------------LISTAR ESTATICA-----------------------------------*/
+
+void listarInventarioEstatico(const InventarioEstatico *inv) {
+    printf("\n--- Itens no Inventario Estatico ---\n");
+    
+    if (inv->quantidade == 0) {
+        printf("O inventario esta vazio.\n");
         return;
     }
-    for (int i = 0; i < lista->quantidade; i++) {
-        printf("[%d]: %s\n", i, lista->nomes[i]);
+
+    //size_t para o contador 'i'
+    for (size_t i = 0; i < inv->quantidade; i++) {
+        printf("------------------------------------\n");
+        // %zu é o formato correto para imprimir uma variável do tipo size_t
+        printf("Item [%zu]:\n", i); 
+        
+        //Acessando cada campo da struct 'Item'
+        printf("  Nome......: %s\n", inv->itens[i].nome);
+        printf("  Tipo......: %s\n", inv->itens[i].tipo);
+        printf("  Quantidade: %d\n", inv->itens[i].quantidade);
     }
+    printf("------------------------------------\n");
 }
 
-//---- IMPLEMENTAÇÃO DAS FUNÇÕES - ENCADEADA ----
+
+
+
+//---------------- IMPLEMENTAÇÃO DAS FUNÇÕES - ENCADEADA ------------------------------
 
 void inicializarInvetarioEncadeado (InventarioEncadeado *lista) {
     *lista = NULL;
 }
 
-void inserirItemEncadeado (InventarioEncadeado *lista, const char* texto) {
-    //Alocação da memória para o NOVO inv
-    Inv* novoInv = (Inv*) malloc(sizeof(Inv));
-    if (novoInv == NULL) {
-        printf("Erro: Falha na alocacao de memoria para o Invetario.\n");
-        return;
-    }
+/*--------------------------INSERIR ENCADEADA-----------------------------------*/
 
-    // Alocar memória para a STRING DENTRO DO inv
-    // strlen conta os caracteres, e o +1 é vital para o caractere nulo ('\0') que finaliza toda string em C.
-    novoInv->nome = (char*) malloc(strlen(texto) + 1);
-    if (novoInv->nome == NULL) {
-        printf("Erro: Falha na alocacao de memoria para o Inventario.\n");
-        free(novoInv); // Libera o inv que já foi alocado
-        return;
-    }
-
-        //Copiar o texto para a memória recém-alocada
-    strcpy(novoInv->nome, texto);
-
-    //Ligar o novo inv à lista
-    // O ponteiro proximo do novo inv passa a apontar para o que era o antigo primeiro inv da lista.
-    novoInv->proximo = *lista;
+void inserirItemEncadeado(InventarioEncadeado *lista, const char* nome, const char* tipo, int quantidade) {
     
-    // A cabeça da lista (*lista) é atualizada para apontar para o novoInv. O novoinv é agora o primeiro item.
-    *lista = novoInv;
+    // Alocar memória para o "Nó"
+    No* novoNo = (No*) malloc(sizeof(No));
+    if (novoNo == NULL) {
+        printf("Erro: Falha na alocacao de memoria para o No.\n");
+        return;
+    }
 
-    printf("Item \"%s\" inserido com sucesso.\n", texto);
+    // Preenchendo os dados do Item DENTRO do Nó.
+    strcpy(novoNo->dados.nome, nome);
+    strcpy(novoNo->dados.tipo, tipo);
+    novoNo->dados.quantidade = quantidade;
+
+    // para ligar o novo nó na lista
+    novoNo->proximo = *lista;
+    *lista = novoNo;
+
+    printf("Item '%s' inserido com sucesso na lista encadeada.\n", nome);
 }
 
-void removerItemEncadeado (InventarioEncadeado *lista, const char* texto) {
-    Inv *atual = *lista;
-    Inv *anterior = NULL;
+/*--------------------------REMOVER ENCADEADA-----------------------------------*/
 
-    // Percorremos a lista com dois ponteiros, atual e anterior, para ser removido.
-    while (atual != NULL && strcmp(atual->nome, texto) != 0) {
+void removerItemEncadeado (InventarioEncadeado *lista, const char* nome) {
+    No *atual = *lista;
+    No *anterior = NULL;
+
+    //O loop agora compara o 'nome' recebido
+    // com o campo 'nome' que está DENTRO da struct 'dados'.
+    while (atual != NULL && strcmp(atual->dados.nome, nome) != 0) {
         anterior = atual;
         atual = atual->proximo;
     }
-
+    // Se não encontrou o item, sai da função.
     if (atual == NULL) {
-        printf("Erro: Item \"%s\" nao encontrado na Inventario.\n", texto);
+        printf("Erro: Item \"%s\" nao encontrado na Inventario.\n", nome);
         return;
     }
 
-    // Se o item a ser removido for o primeiro (anterior == NULL)
+    // para remover o nó da "corrente"
+    // não muda nada, pois ela só se importa com os engates (ponteiros).
     if (anterior == NULL) {
-        *lista = atual->proximo;
-    } else { // Se estiver no meio/fim, o ponteiro proximo do anterior "pula" o atual
-        anterior->proximo = atual->proximo;
+        *lista = atual->proximo;// O item a ser removido era o primeiro
+    } else { 
+        anterior->proximo = atual->proximo;// O item estava no meio ou no fim.
     }
 
-    // Liberação de Memória (Muito Importante!)
-    free(atual->nome); // Libera a memória da string DENTRO do inv.
-    free(atual);       // AGORA podemos liberar o inv.
-    printf("Item \"%s\" removido com sucesso.\n", texto);
+    //Na versão anterior, precisávamos de dois 'free', um para o nome e outro para o nó.
+    // Agora, como a struct 'Item' inteira vive DENTRO do Nó, precisamos de apenas UM 'free'.
+    free(atual);
+    printf("Item \"%s\" removido com sucesso.\n", nome);
 }
 
+/*--------------------------LISTAR ENCADEADA-----------------------------------*/
+
+
 void listarInventarioEncadeado (const InventarioEncadeado lista) {
-    Inv *temp = lista;
-    printf("\nItens do inventario Encadeado:\n");
-    if (temp == NULL) {
+    No *atual = lista;
+    printf("\n---- Itens do inventario Encadeado -----\n");
+    if (atual == NULL) {
         printf("O iventario esta vazio.\n");
         return;
     }
     int i = 0;
-    while (temp != NULL) {
-        printf("[%d]: %s\n", i, temp->nome);
-        temp = temp->proximo;
+    while (atual != NULL) {
+   printf("------------------------------------\n");
+        printf("Item [%d]:\n", i);
+        
+        printf("  Nome......: %s\n", atual->dados.nome);
+        printf("  Tipo......: %s\n", atual->dados.tipo);
+        printf("  Quantidade: %d\n", atual->dados.quantidade);
+
+        // Avança para o próximo nó
+        atual = atual->proximo;
         i++;
     }
+    printf("------------------------------------\n");
 }
 
+/*--------------------------LIBERAR ENCADEADA-----------------------------------*/
+
+
 void liberarInventarioEncadeado (InventarioEncadeado *lista) {
-    Inv *atual = *lista;
-    Inv *proximo;
+    No *atual = *lista;
+    No *proximo;
 
     // Percorre todos os itens da lista, um por um, e aplica a mesma lógica de liberação dupla (free)
     while (atual != NULL) {
-        proximo = atual->proximo;
-        free(atual->nome); // Libera a string
-        free(atual);       // Libera o item
-        atual = proximo;
+        proximo = atual->proximo;  //guarda o endereço do próximo vagão.
+        free(atual);       // Libera o vagão atual. TUDO que está dentro dele (a struct Item inteira) vai junto.
+        atual = proximo;  //Pula para o próximo vagão.
     }
-    *lista = NULL; // Garante que a lista aponte para NULL após ser liberada
+    *lista = NULL; // Garante que a lista fique segura e vazia.
 }
