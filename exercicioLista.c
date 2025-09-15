@@ -20,6 +20,17 @@ typedef struct {
     size_t quantidade;  
 } InventarioEstatico;
 
+/*--------------------------Bubble Sort - TROCAR ESTATICA-----------------------------------*/
+
+// Ferramenta auxiliar para o Bubble Sort
+// Recebe o ENDEREÇO de dois Itens e troca o conteúdo entre eles.
+void trocarItens(Item *itemA, Item *itemB) {
+    Item temp = *itemA; // 1. Guarda uma cópia do item A em uma variável temporária.
+    *itemA = *itemB;    // 2. Copia o conteúdo do item B por cima do item A.
+    *itemB = temp;      // 3. Copia o conteúdo guardado em 'temp' por cima do item B.
+}
+
+
 // funções (modularização) 
 
 /*--------------------------- estatica --------------------------*/
@@ -28,6 +39,7 @@ void inserirItemEstatico(InventarioEstatico *inv, const char* nome, const char* 
 void removerItem (InventarioEstatico *lista, const char* texto);
 void listarInventarioEstatico (const InventarioEstatico *inv);
 void menuInventarioEstatico();
+void ordenarInventarioEstatico(InventarioEstatico *inv);
 
 
 /*-----------------------encadeada---------------------------------*/
@@ -96,6 +108,7 @@ void menuInventarioEstatico() {
         printf("1. Inserir item\n");
         printf("2. Remover item\n");
         printf("3. Listar itens\n");
+        printf("4. ordenar itens\n");
         printf("0. Voltar ao menu principal\n");
         printf("Escolha uma opcao: ");
         scanf("%d", &opcao);
@@ -127,6 +140,12 @@ void menuInventarioEstatico() {
                 removerItem(&lista, nome);
                 break;
             case 3:
+                listarInventarioEstatico(&lista);
+                break;
+            case 4:
+            printf("-----Ordenar itens------\n");
+                ordenarInventarioEstatico(&lista);
+                //chamando a listagem em seguida para saber como ficou
                 listarInventarioEstatico(&lista);
                 break;
             case 0:
@@ -277,7 +296,30 @@ void listarInventarioEstatico(const InventarioEstatico *inv) {
     printf("------------------------------------\n");
 }
 
+/*--------------------------ORDENAR ESTATICA-----------------------------------*/
+void ordenarInventarioEstatico(InventarioEstatico *inv) {
+    if (inv->quantidade < 2) {
+        printf("Nao ha itens suficientes para ordenar.\n");
+        return; // Não faz nada se a lista estiver vazia ou com 1 item
+    }
 
+    // Loop externo: controla as passagens
+    for (size_t i = 0; i < inv->quantidade - 1; i++) {
+        // Loop interno: faz as comparações e trocas
+        // O "- i" é uma otimização: a cada passagem, o maior item já borbulhou para o final
+        // então não precisamos verificar os itens que já estão no lugar certo.
+        for (size_t j = 0; j < inv->quantidade - 1 - i; j++) {
+            
+            // Compara o nome do item atual com o nome do próximo item
+            // strcmp > 0 significa que a primeira string vem DEPOIS da segunda na ordem alfabética
+            if (strcmp(inv->itens[j].nome, inv->itens[j + 1].nome) > 0) {
+                // Se estiverem fora de ordem, troca os itens de lugar
+                trocarItens(&inv->itens[j], &inv->itens[j + 1]);
+            }
+        }
+    }
+    printf("Inventario ordenado por nome com sucesso!\n");
+}
 
 
 //---------------- IMPLEMENTAÇÃO DAS FUNÇÕES - ENCADEADA ------------------------------
