@@ -5,6 +5,18 @@
 #define TAM_MAX 10
 #define MAX_STR_LEN 30
 
+/*---Limpa "\n" do fgets---*/
+static void strip_newline(char *s) {
+    if (!s) return;
+    s[strcspn(s, "\n")] = '\0';
+}
+
+/*---limpar buffer -> limpando o caminho para a proxima leitura---*/
+void limparBufferUp(void) {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
 // Struct que define UM item
 typedef struct {
     char nome[MAX_STR_LEN];
@@ -12,7 +24,9 @@ typedef struct {
     int quantidade;
 } Item;
 
-//Estatico
+
+
+//----------------------------------Estatico----------------------------------------------
 
 // Struct do inventário que guarda um VETOR de Itens
 typedef struct {
@@ -32,17 +46,19 @@ void trocarItens(Item *itemA, Item *itemB) {
 
 
 // funções (modularização) 
-
-/*--------------------------- estatica --------------------------*/
-void inicializarInvetario (InventarioEstatico *lista);
+void inicializarInventario (InventarioEstatico *lista);
 void inserirItemEstatico(InventarioEstatico *inv, const char* nome, const char* tipo, int quantidade);
-void removerItem (InventarioEstatico *lista, const char* texto);
+void removerItemEstatico (InventarioEstatico *lista, const char* texto);
 void listarInventarioEstatico (const InventarioEstatico *inv);
 void menuInventarioEstatico();
 void ordenarInventarioEstatico(InventarioEstatico *inv);
+int buscaBinariaPorNome(const InventarioEstatico *inv, const char* nomeBusca);
 
 
-/*-----------------------encadeada---------------------------------*/
+
+
+
+/*------------------------------------Encadeada-----------------------------------------------------------*/
 // O mesmo 'Item' da lista estática será usado aqui
 typedef struct No {
     Item dados; // O 'Nó' agora carrega a struct 'Item' inteira
@@ -52,7 +68,7 @@ typedef struct No {
 typedef No* InventarioEncadeado;
 
 //funções (encadeada)
-void inicializarInvetarioEncadeado (InventarioEncadeado *lista);
+void inicializarInventarioEncadeado (InventarioEncadeado *lista);
 void inserirItemEncadeado (InventarioEncadeado *lista, const char* nome, const char* tipo, int quantidade);
 void removerItemEncadeado (InventarioEncadeado *lista, const char* texto);
 void listarInventarioEncadeado (const InventarioEncadeado lista);
@@ -72,7 +88,7 @@ int main() {
         printf("0. Sair do inventario\n");
         printf("Escolha uma opcao: \n");
         scanf("%d", &opcao);
-        getchar(); //limpa buffer(\n)
+        limparBufferUp();
 
         switch (opcao)
         {
@@ -96,7 +112,7 @@ int main() {
 
 void menuInventarioEstatico() {
     InventarioEstatico lista;
-    inicializarInvetario(&lista);
+    inicializarInventario(&lista);
     int opcao;
     char nome[MAX_STR_LEN];
     char tipo[20]; //conforme a struct item
@@ -109,34 +125,35 @@ void menuInventarioEstatico() {
         printf("2. Remover item\n");
         printf("3. Listar itens\n");
         printf("4. ordenar itens\n");
+        printf("5. Buscar item por nome (Busca Rapida)\n");
         printf("0. Voltar ao menu principal\n");
         printf("Escolha uma opcao: ");
         scanf("%d", &opcao);
-        getchar(); // Limpa o buffer
+        limparBufferUp(); // Limpa o buffer
 
         switch (opcao) {
             case 1:
                 //pedindo o nome
                 printf("Digite o nome do item:");
                 fgets(nome, MAX_STR_LEN, stdin);
-                nome[strcspn(nome, "\n")] = 0;
+                strip_newline(nome);
 
                 //pedindo o tipo
                 printf("Digite o tipo do item(Ex: arma, cura, ferramenta):");
                 fgets(tipo, 20, stdin);
-                tipo[strcspn(tipo, "\n")] = 0;
+                strip_newline(tipo);
 
                 //pedindo a quantidade
                 printf("Digite a quantidade:");
                 scanf("%d", &quantidade);                
-                getchar();
+                limparBufferUp();
 
                 inserirItemEstatico(&lista, nome, tipo, quantidade);
                 break;
             case 2:
                 printf("Digite o item a remover: ");
                 fgets(nome, MAX_STR_LEN, stdin);
-                nome[strcspn(nome, "\n")] = 0;
+                strip_newline(nome);
                 removerItem(&lista, nome);
                 break;
             case 3:
@@ -147,6 +164,54 @@ void menuInventarioEstatico() {
                 ordenarInventarioEstatico(&lista);
                 //chamando a listagem em seguida para saber como ficou
                 listarInventarioEstatico(&lista);
+                break;
+            case 5:
+
+                printf("\nMODO DE USO: essa função so funciona se a lista estiver ordenada(funcao 4 do menu)\n");
+                int opcaoCase5;
+
+                do
+                {
+                    printf("\n--- Busque seu item ---\n");
+                    printf("1.Buscar item\n");
+                    printf("0.Voltar ao menu anterior\n");
+                    scanf("%d", &opcaoCase5);
+                    limparBufferUp();
+                    
+                    switch (opcaoCase5)
+                    {
+                    case 1:
+                        char nomeBusca[MAX_STR_LEN];
+                        printf("Digite o nome do item a buscar: ");
+                        fgets(nomeBusca, MAX_STR_LEN, stdin);
+                        strip_newline(nomeBusca);
+
+                        // Chama a função e guarda o resultado
+                        int indice = buscaBinariaPorNome(&lista, nomeBusca);
+
+                        if (indice == -1)
+                        {
+                            printf(">> Item '%s' nao encontrado no inventario.\n", nomeBusca);
+                        }
+                        else
+                        {
+                            printf(">> Item encontrado na posicao [%d]!\n", indice);
+                            printf("   Nome......: %s\n", lista.itens[indice].nome);
+                            printf("   Tipo......: %s\n", lista.itens[indice].tipo);
+                            printf("   Quantidade: %d\n", lista.itens[indice].quantidade);
+                        }
+                        break;
+
+                    case 0:
+                        break;
+
+                    default:
+                        perror("ERROR: Opcao invalida!");
+                        break;
+                    }
+
+                } while (opcaoCase5 != 0);
+
                 break;
             case 0:
                 break;
@@ -160,7 +225,7 @@ void menuInventarioEstatico() {
 
 void menuInventarioEncadeado() {
     InventarioEncadeado lista;
-    inicializarInvetarioEncadeado(&lista);
+    inicializarInventarioEncadeado(&lista);
     int opcao;
     char nome[MAX_STR_LEN];
     char tipo[20];
@@ -175,28 +240,28 @@ void menuInventarioEncadeado() {
         printf("0. Voltar ao menu principal\n");
         printf("Escolha uma opcao: ");
         scanf("%d", &opcao);
-        getchar(); // Limpa o buffer
+        limparBufferUp(); // Limpa o buffer
 
         switch (opcao) {
             case 1:
                 printf("Digite o nome do item:");
                 fgets(nome, MAX_STR_LEN, stdin);
-                nome[strcspn(nome, "\n")] = 0;
+                strip_newline(nome);
 
                 printf("Digite o tipo do item(Ex: arma, cura, ferramenta):");
                 fgets(tipo, 20, stdin);
-                tipo[strcspn(tipo, "\n")] = 0;
+                strip_newline(tipo);
 
                 printf("Digite a quantidade:");
                 scanf("%d", &quantidade);                
-                getchar();
+                limparBufferUp();
 
                 inserirItemEncadeado(&lista, nome, tipo, quantidade);
                 break;
             case 2:
                 printf("Digite o item a remover: ");
                 fgets(nome, MAX_STR_LEN, stdin);
-                nome[strcspn(nome, "\n")] = 0;
+                strip_newline(nome);
                 removerItemEncadeado(&lista, nome);
                 break;
             case 3:
@@ -215,7 +280,7 @@ void menuInventarioEncadeado() {
 
 //IMPLEMENTAÇÃO - ESTATICA
 
-void inicializarInvetario (InventarioEstatico *lista) {
+void inicializarInventario (InventarioEstatico *lista) {
     lista->quantidade = 0;
 }
 
@@ -245,7 +310,7 @@ void inserirItemEstatico(InventarioEstatico *inv, const char *nome, const char *
 
 /*--------------------------REMOVER ESTATICA-----------------------------------*/
 
-void removerItem (InventarioEstatico *lista, const char* texto) {
+void removerItemEstatico (InventarioEstatico *lista, const char* texto) {
     int i, pos = -1;
 
     //vamos usar strcmp() para comparar strings, retona 0 se forem iguais.
@@ -321,10 +386,81 @@ void ordenarInventarioEstatico(InventarioEstatico *inv) {
     printf("Inventario ordenado por nome com sucesso!\n");
 }
 
+/*--------------------------REMOVER ESTATICA-----------------------------------*/
+
+// Retorna o índice do item se encontrado, ou -1 se não encontrar.
+int buscaBinariaPorNome(const InventarioEstatico *inv, const char* nomeBusca) {
+    
+    // 1. Define os limites da busca: do primeiro ao último item.
+    int inicio = 0;
+    int fim = inv->quantidade - 1;
+
+    // 2. Enquanto houver uma área de busca válida...
+    while (inicio <= fim) {
+        // 3. Calcula o índice do meio.
+        int meio = inicio + (fim - inicio) / 2;
+
+        // 4. Compara o nome do meio com o nome buscado.
+        int comparacao = strcmp(inv->itens[meio].nome, nomeBusca);
+
+        if (comparacao == 0) {
+            // ACHOU! Retorna o índice.
+            return meio; 
+        } 
+        else if (comparacao < 0) {
+            // O nome do meio vem ANTES do que buscamos. Joga fora a metade de baixo.
+            inicio = meio + 1;
+        } 
+        else { // comparacao > 0
+            // O nome do meio vem DEPOIS do que buscamos. Joga fora a metade de cima.
+            fim = meio - 1;
+        }
+    }
+
+    // 5. Se o loop terminar, o item não foi encontrado.
+    return -1;
+}
+
+//--------------------------- SELECTION SORT - ESTATICA ----------------------------------------
+
+// Ordena o inventário com base na quantidade (prioridade), do menor para o maior.
+void selectionSortPorPrioridade(InventarioEstatico *inv) {
+    if (inv->quantidade < 2) {
+        return; // Não precisa ordenar
+    }
+
+    // Loop externo ('i'): Percorre o vetor para definir a posição que será preenchida.
+    // A cada volta, ele coloca o menor item da parte "bagunçada" na posição 'i'.
+    for (size_t i = 0; i < inv->quantidade - 1; i++) {
+        
+        // Supomos que o menor item é o primeiro da parte não ordenada.
+        size_t indiceMenor = i;        
+
+        // Loop interno ('j'): Sua única missão é ENCONTRAR o verdadeiro menor item
+        // na parte restante do vetor (de i+1 até o fim). 
+        for (size_t j = i + 1; j < inv->quantidade; j++) {
+            // Se encontrarmos um item com quantidade menor que o nosso 'menor' atual...
+            if (inv->itens[j].quantidade < inv->itens[indiceMenor].quantidade) {
+                // ...atualizamos nosso índice do menor.
+                indiceMenor = j;
+            }
+        }
+
+        // Depois que o loop interno termina, se o menor item encontrado
+        // não for o que já estava na posição 'i', nós fazemos UMA ÚNICA TROCA. [cite: 1147, 1186]
+      if (indiceMenor != i) { // <-- CORREÇÃO AQUI
+            trocarItens(&inv->itens[i], &inv->itens[indiceMenor]);
+        }
+    }
+    printf("Inventario ordenado por prioridade (quantidade) com sucesso!\n");
+}
+
+
+
 
 //---------------- IMPLEMENTAÇÃO DAS FUNÇÕES - ENCADEADA ------------------------------
 
-void inicializarInvetarioEncadeado (InventarioEncadeado *lista) {
+void inicializarInventarioEncadeado (InventarioEncadeado *lista) {
     *lista = NULL;
 }
 
