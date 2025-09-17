@@ -51,9 +51,10 @@ void inserirItemEstatico(InventarioEstatico *inv, const char* nome, const char* 
 void removerItemEstatico (InventarioEstatico *lista, const char* texto);
 void listarInventarioEstatico (const InventarioEstatico *inv);
 void menuInventarioEstatico();
-void ordenarInventarioEstatico(InventarioEstatico *inv);
+void ordenarInventarioEstatico(InventarioEstatico *inv, long long int *contadorComparacoes);
 int buscaBinariaPorNome(const InventarioEstatico *inv, const char* nomeBusca);
-
+void selectionSortPorPrioridade(InventarioEstatico *inv, long long int *contadorComparacoes);
+void insertionSortPorTipo(InventarioEstatico *inv, long long int *contadorComparacoes);
 
 
 
@@ -150,20 +151,56 @@ void menuInventarioEstatico() {
 
                 inserirItemEstatico(&lista, nome, tipo, quantidade);
                 break;
+
             case 2:
                 printf("Digite o item a remover: ");
                 fgets(nome, MAX_STR_LEN, stdin);
                 strip_newline(nome);
-                removerItem(&lista, nome);
+                removerItemEstatico(&lista, nome);
                 break;
+
             case 3:
                 listarInventarioEstatico(&lista);
                 break;
+
             case 4:
-            printf("-----Ordenar itens------\n");
-                ordenarInventarioEstatico(&lista);
-                //chamando a listagem em seguida para saber como ficou
-                listarInventarioEstatico(&lista);
+                int opcaoCase4;
+                long long int comparacoes = 0;
+                do
+                {
+                    printf("\n---------- ORDERNAR LISTA -------------\n");
+                    printf("1. Ordenar Lista\n");
+                    printf("2. Ordenar Lista por Prioridade\n");
+                    printf("3. Ordenar Lista por Tipo\n");
+                    printf("0. Voltar ao menu anterior\n");
+                    scanf("%d", &opcaoCase4);
+                    limparBufferUp();
+
+                    switch (opcaoCase4)                        
+                    {
+                    case 1:
+                        printf("----- Itens Ordenados -----\n");
+                        ordenarInventarioEstatico(&lista, &comparacoes);
+                        printf(">> Numero de comparacoes realizadas: %lld\n", comparacoes);
+                        listarInventarioEstatico(&lista);
+                        break;
+                    case 2:
+                        printf("---- Lista ordenada por prioridade(Quantidade) ----\n");
+                        selectionSortPorPrioridade(&lista, &comparacoes);
+                        printf(">> Numero de comparacoes realizadas: %lld\n", comparacoes);
+                        listarInventarioEstatico(&lista);
+                        break;
+                    case 3:
+                        printf("Inventario ordenado por tipo com sucesso!\n");
+                        insertionSortPorTipo(&lista, &comparacoes);
+                        printf(">> Numero de comparacoes realizadas: %lld\n", comparacoes);
+                        listarInventarioEstatico(&lista);
+                    break;
+                    default:
+                        perror("ERROR: Opcao invalida!");
+                        break;
+                    }
+                } while (opcaoCase4 != 0);
                 break;
             case 5:
 
@@ -361,12 +398,14 @@ void listarInventarioEstatico(const InventarioEstatico *inv) {
     printf("------------------------------------\n");
 }
 
-/*--------------------------ORDENAR ESTATICA-----------------------------------*/
-void ordenarInventarioEstatico(InventarioEstatico *inv) {
+/*--------------------------ORDENAR ESTATICA - BUBBLE SORT-----------------------------------*/
+void ordenarInventarioEstatico(InventarioEstatico *inv, long long int *contadorComparacoes) {
     if (inv->quantidade < 2) {
         printf("Nao ha itens suficientes para ordenar.\n");
         return; // Não faz nada se a lista estiver vazia ou com 1 item
     }
+
+    *contadorComparacoes = 0; // Zera o contador no início da ordenação
 
     // Loop externo: controla as passagens
     for (size_t i = 0; i < inv->quantidade - 1; i++) {
@@ -377,6 +416,7 @@ void ordenarInventarioEstatico(InventarioEstatico *inv) {
             
             // Compara o nome do item atual com o nome do próximo item
             // strcmp > 0 significa que a primeira string vem DEPOIS da segunda na ordem alfabética
+            (*contadorComparacoes)++;
             if (strcmp(inv->itens[j].nome, inv->itens[j + 1].nome) > 0) {
                 // Se estiverem fora de ordem, troca os itens de lugar
                 trocarItens(&inv->itens[j], &inv->itens[j + 1]);
@@ -424,10 +464,12 @@ int buscaBinariaPorNome(const InventarioEstatico *inv, const char* nomeBusca) {
 //--------------------------- SELECTION SORT - ESTATICA ----------------------------------------
 
 // Ordena o inventário com base na quantidade (prioridade), do menor para o maior.
-void selectionSortPorPrioridade(InventarioEstatico *inv) {
+void selectionSortPorPrioridade(InventarioEstatico *inv, long long int *contadorComparacoes) {
     if (inv->quantidade < 2) {
         return; // Não precisa ordenar
     }
+
+    *contadorComparacoes = 0;
 
     // Loop externo ('i'): Percorre o vetor para definir a posição que será preenchida.
     // A cada volta, ele coloca o menor item da parte "bagunçada" na posição 'i'.
@@ -439,6 +481,7 @@ void selectionSortPorPrioridade(InventarioEstatico *inv) {
         // Loop interno ('j'): Sua única missão é ENCONTRAR o verdadeiro menor item
         // na parte restante do vetor (de i+1 até o fim). 
         for (size_t j = i + 1; j < inv->quantidade; j++) {
+            (*contadorComparacoes)++;
             // Se encontrarmos um item com quantidade menor que o nosso 'menor' atual...
             if (inv->itens[j].quantidade < inv->itens[indiceMenor].quantidade) {
                 // ...atualizamos nosso índice do menor.
@@ -452,7 +495,32 @@ void selectionSortPorPrioridade(InventarioEstatico *inv) {
             trocarItens(&inv->itens[i], &inv->itens[indiceMenor]);
         }
     }
-    printf("Inventario ordenado por prioridade (quantidade) com sucesso!\n");
+}
+
+//---------------- Insertion Sort - ESTATICA ------------------------------
+
+// Ordena o inventário com base no tipo (ordem alfabética).
+void insertionSortPorTipo(InventarioEstatico *inv, long long int *contadorComparacoes) {
+    if (inv->quantidade < 2) return;
+
+    *contadorComparacoes = 0;
+    for (size_t i = 1; i < inv->quantidade; i++) {
+        Item chave = inv->itens[i];
+        int j = i - 1;
+
+        // A comparação acontece DENTRO da condição do 'while'.
+        // Portanto, o contador deve ser incrementado a cada iteração dele.
+        while (j >= 0) {
+            (*contadorComparacoes)++; // Conta a comparação que faremos agora
+            if (strcmp(inv->itens[j].tipo, chave.tipo) > 0) {
+                inv->itens[j + 1] = inv->itens[j];
+                j--;
+            } else {
+                break; // A comparação falhou (mas foi feita!), então paramos.
+            }
+        }
+        inv->itens[j + 1] = chave;
+    }
 }
 
 
