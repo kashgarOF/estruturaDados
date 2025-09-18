@@ -5,6 +5,13 @@
 
 #define MAX_FILA 5
 
+/*---limpar buffer -> limpando o caminho para a proxima leitura---*/
+void limparBufferUp(void) {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
+
 //Estrutura que define uma peça do jogo
 typedef struct {
     char tipo;
@@ -26,6 +33,7 @@ int filaVazia(Fila *f);
 void inserir(Fila *f, Peca p);
 Peca gerarPeca();
 void mostrarFila(Fila *f);
+Peca remover(Fila *f);
 
 
 
@@ -33,22 +41,63 @@ void mostrarFila(Fila *f);
 //-------------- Função principal ----------------
 
 int main() {
+    srand(time(NULL)); // Inicializa para números aleatórios
+    Fila filaDePecas;
+    int opcao;
 
-    srand(time(NULL));// Inicializa a semente para números aleatórios
-
-    Fila filaDePecas; // 1. Cria a variável do tipo Fila
-
-    // 2. Chama a função para "inaugurar" a fila, passando o endereço dela com o '&'
     inicializarFila(&filaDePecas);
 
-    printf("Inserindo 3 pecas na fila...\n");
-    inserir(&filaDePecas, gerarPeca());
-    inserir(&filaDePecas, gerarPeca());
-    inserir(&filaDePecas, gerarPeca());
+    // Vamos pré-preencher a fila para que o jogo já comece com algumas peças
+    printf("Iniciando o jogo e gerando as primeiras pecas...\n");
+    for(int i = 0; i < 3; i++) { // Começa com 3 peças
+        inserir(&filaDePecas, gerarPeca());
+    }
 
-    printf("Fila apos insercoes. Total de pecas: %d\n", filaDePecas.total);
+    do {
+        // O estado da fila é sempre exibido no início de cada turno
+        printf("\n---------------------------------");
+        mostrarFila(&filaDePecas);
+        printf("---------------------------------\n");
+        
+        // Menu de opções para o jogador
+        printf("Opcoes:\n");
+        printf("1. Jogar peca (remover da fila)\n");
+        printf("2. Gerar e adicionar nova peca (se houver espaco)\n");
+        printf("0. Sair do Jogo\n");
+        printf("Escolha uma opcao: ");
+        
+        scanf("%d", &opcao);
+        limparBufferUp();
 
-     mostrarFila(&filaDePecas);
+        switch(opcao) {
+            case 1: { // Chaves para criar um escopo local
+                if (!filaVazia(&filaDePecas)) {
+                    Peca jogada = remover(&filaDePecas);
+                    printf("\n>> Voce jogou a peca [%c%d]!\n", jogada.tipo, jogada.id);
+                } else {
+                    printf("\n>> Fila de pecas vazia! Nao ha pecas para jogar.\n");
+                }
+                break;
+            }
+            case 2: {
+                if (!filaCheia(&filaDePecas)) {
+                    Peca nova = gerarPeca();
+                    inserir(&filaDePecas, nova);
+                    printf("\n>> Nova peca [%c%d] entrou na fila!\n", nova.tipo, nova.id);
+                } else {
+                    printf("\n>> A fila de pecas esta cheia!\n");
+                }
+                break;
+            }
+            case 0:
+                printf("\nSaindo do jogo...\n");
+                break;
+            default:
+                printf("\nOpcao invalida! Tente novamente.\n");
+                break;
+        }
+
+    } while(opcao != 0);
 
     return 0;
 }
@@ -117,4 +166,25 @@ void mostrarFila(Fila *f) {
     }
     printf("\n");
 
+}
+
+// Remove o elemento do início da fila (dequeue) e o retorna.
+Peca remover(Fila *f) {
+    Peca pecaRemovida;
+    // 1. Verificação de segurança
+    if(filaVazia(f)) {
+        printf("Fila vazia. Nao e possivel remover\n");
+        // Cria uma "peça de erro" para retornar
+        pecaRemovida.id =  -1;
+        pecaRemovida.tipo = ' ';
+        return pecaRemovida;
+    }
+    // 2. Guarda uma cópia da peça que está no início da fila.
+    pecaRemovida = f->pecas[f->inicio];
+    // 3. Move o 'início' para a próxima posição.
+    f->inicio = (f->inicio + 1) % MAX_FILA;
+    // 4. Decrementa o número total de itens.
+    f->total--;
+    // 5. Retorna a peça que foi removida.
+    return pecaRemovida;
 }
