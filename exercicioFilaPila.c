@@ -4,12 +4,24 @@
 #include <string.h>
 
 #define MAX_FILA 5
+#define MAX_PILHA 3
 
 /*---limpar buffer -> limpando o caminho para a proxima leitura---*/
 void limparBufferUp(void) {
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
 }
+
+
+/*----------------- PILHA ----------------------*/
+typedef struct {
+    Peca pecas[MAX_PILHA];
+    int topo; // unico controlador: indica o indice do ultimo elemento inserido
+} Pilha;
+
+void inicizlizarPilha (Pilha *p);
+int pilhaVazia(Pilha *p);
+int pilhaCheia(Pilha *p);
 
 
 //Estrutura que define uma peça do jogo
@@ -187,4 +199,23 @@ Peca remover(Fila *f) {
     f->total--;
     // 5. Retorna a peça que foi removida.
     return pecaRemovida;
+}
+
+
+/*----------------------------- P I L H A S ----------------------------------*/
+
+// Prepara a pilha para uso, marcando-a como vazia.
+void inicizlizarPilha (Pilha *p) {
+    p->topo = -1;
+}
+
+// Retorna 1 (verdadeiro) se a pilha estiver vazia.
+int pilhaVazia(Pilha *p) {
+    return p->topo == -1; 
+}
+
+// Retorna 1 (verdadeiro) se a pilha estiver cheia.
+int pilhaCheia(Pilha *p) {
+    // Como os índices vão de 0 a MAX_PILHA-1, a pilha está cheia quando o topo atinge o último índice.
+    return p->topo == MAX_PILHA -1;
 }
