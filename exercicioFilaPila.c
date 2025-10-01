@@ -98,8 +98,8 @@ int main() {
         printf("1. Jogar peca (da Fila)\n");
         printf("2. Reservar peca (Fila -> Pilha)\n");
         printf("3. Usar peca reservada (da Pilha)\n");
-        printf("4. Trocas peca (fila <-> pilha)\n");
-        printf("5. Troca Multiplas de peca (Minimo: 03)\n");
+        printf("4. Trocar peca (Fila <-> Pilha)\n"); // Deixando mais claro
+        printf("5. Troca Multipla (3 da Fila <-> 3 da Pilha)\n"); // Deixando mais claro
         printf("0. Sair do Jogo\n");
         printf("Escolha uma opcao: ");
         
