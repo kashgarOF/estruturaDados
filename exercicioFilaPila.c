@@ -152,7 +152,7 @@ int main() {
                 printf("\nSaindo do jogo...\n");
                 break;
             default:
-                perror("\nOpcao invalida! Tente novamente.\n");
+                printf("\nOpcao invalida! Tente novamente.\n");
                 break;
         }
 
