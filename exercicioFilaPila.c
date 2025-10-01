@@ -53,6 +53,11 @@ Peca pop(Pilha *p);
 void mostrarPilha(Pilha *p);
 
 
+// Funções hibridas
+void trocarPecas(Fila *f, Pilha *p);
+void trocaMultipla(Fila *f, Pilha *p);
+
+
 
 // Funções Utilitárias
 
@@ -93,6 +98,8 @@ int main() {
         printf("1. Jogar peca (da Fila)\n");
         printf("2. Reservar peca (Fila -> Pilha)\n");
         printf("3. Usar peca reservada (da Pilha)\n");
+        printf("4. Trocas peca (fila <-> pilha)\n");
+        printf("5. Troca Multiplas de peca (Minimo: 03)\n");
         printf("0. Sair do Jogo\n");
         printf("Escolha uma opcao: ");
         
@@ -133,11 +140,19 @@ int main() {
                 }
                 break;
             }
+            case 4: {
+                trocarPecas(&filaDePecas, &pilhaDeReserva);
+                break;
+            }
+            case 5: {
+                trocaMultipla(&filaDePecas, &pilhaDeReserva);
+                break;
+            }
             case 0:
                 printf("\nSaindo do jogo...\n");
                 break;
             default:
-                printf("\nOpcao invalida! Tente novamente.\n");
+                perror("\nOpcao invalida! Tente novamente.\n");
                 break;
         }
 
@@ -308,4 +323,48 @@ void mostrarPilha(Pilha *p) {
     }
 
     printf("\n");
+}
+
+
+
+void trocarPecas(Fila *f, Pilha *p) {
+    // 1. Verificação de segurança: A troca só é possível se AMBAS tiverem peças.
+    if(filaVazia(f) || pilhaVazia(p)) {
+        printf("\n>> Troca nao permitida! Fila ou pilha vazia.\n");
+        return;
+    }
+    // 2. Lógica da troca usando uma variável temporária
+    Peca temp = f->pecas[f->inicio];    // Guarda a peça da Fila
+    f->pecas[f->inicio] = p->pecas[p->topo];     // Coloca a peça da Pilha na Fila
+    p->pecas[p->topo] = temp;   // Coloca a peça guardada na Pilha
+
+    printf("\n>> Troca realizada com sucesso!\n");
+}
+
+
+void trocaMultipla(Fila *f, Pilha *p) {
+    
+    // 1. Verificação de segurança
+    // A pilha precisa ter 3 itens (topo no índice 2) e a fila também (total >= 3)
+    if (f->total < 3 || p->topo < 2) {
+        printf("\n>> Troca multipla nao permitida! Fila ou Pilha nao tem 3 pecas.\n");
+        return;
+    }
+
+    printf("\n>> Realizando troca multipla!\n");
+
+    // 2. Loop simples que roda EXATAMENTE 3 vezes (para i = 0, 1, 2)
+    for (int i = 0; i < 3; i++) {
+        // 3. Cálculo dos índices
+        // Para a Fila, calculamos o índice a partir do 'inicio' de forma circular
+        int indiceFila = (f->inicio + i) % MAX_FILA;
+        
+        // Para a Pilha, calculamos o índice a partir do 'topo', descendo
+        int indicePilha = p->topo - i;
+
+        // 4. A mesma lógica da função trocarPecas
+        Peca temp = f->pecas[indiceFila];
+        f->pecas[indiceFila] = p->pecas[indicePilha];
+        p->pecas[indicePilha] = temp;
+    }
 }
