@@ -9,13 +9,14 @@
 // um ponteiro para outro Nó à esquerda, e um ponteiro para outro Nó à direita."
 typedef struct No {
     char nome[MAX_NOME_SALA]; // O nome do cômodo (ex: "Biblioteca")
+    char* pista;
     struct No *esquerda;      // Ponteiro para o cômodo da esquerda (ou NULL se não houver)
     struct No *direita;       // Ponteiro para o cômodo da direita (ou NULL se não houver)
 } No;
 
 // --- MODULARIZAÇÃO DAS FUNÇÕES ---
 
-No* criarSala(const char* nome);
+No* criarSala(const char* nome, const char* pista);
 void explorarSalas(No* salaAtual);
 
 
@@ -28,14 +29,16 @@ void liberarMemoria(No* raiz);
 
 int main() {
     // A raiz da nossa árvore (o ponto de partida)
-    No* raiz = criarSala("Entrada");
+    No* raiz = criarSala("Entrada", "Um casaco molhado no cabide.");
 
     // Conectando as portas (ponteiros)
-    raiz->esquerda = criarSala("Sala de Estar");
-    raiz->direita = criarSala("Biblioteca");
-    raiz->esquerda->esquerda = criarSala("Quarto");
+    raiz->esquerda = criarSala("Sala de Estar", "Uma lareira recem-apagada.");
+    raiz->direita = criarSala("Biblioteca", NULL);  // Sala sem pista
+    raiz->esquerda->esquerda = criarSala("Quarto", "Uma janela quebrada.");
+    raiz->direita->direita = criarSala("Cozinha", "Faca de cozinha desaparecida.");
 
-    printf("Detetive, bem-vindo a mansao!\n");
+    printf("Detetive, bem-vindo a mansao! O misterio comecou.\n");
+    printf("Voce esta no %s\n", raiz->nome);
 
     // --- Iniciando a Exploração ---
     explorarSalas(raiz);
@@ -54,7 +57,7 @@ int main() {
 
 
 // Função para alocar memória e criar um novo nó (sala) da árvore.
-No* criarSala(const char* nome) {
+No* criarSala(const char* nome, const char* pista) {
 
     // 1. Pede ao sistema memória suficiente para um novo 'No'.
     No* novaSala = (No*) malloc(sizeof(No));
@@ -69,6 +72,15 @@ No* criarSala(const char* nome) {
     strcpy(novaSala->nome, nome);   // Copia o nome para dentro da struct.
     novaSala->esquerda = NULL;  // A porta da esquerda começa fechada.
     novaSala->direita = NULL;   // A porta da direita começa fechada.
+
+    if (pista != NULL) {
+        //aloca memoria para a pista e copia
+        novaSala->pista = (char*) malloc(strlen(pista) + 1);
+        strcpy(novaSala->pista, pista);
+    } else {
+        //se não houver pista...
+        novaSala->pista = NULL;
+    }
 
      // 3. Retorna o endereço da sala recém-criada.
     return novaSala;
